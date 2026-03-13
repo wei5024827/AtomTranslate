@@ -1,5 +1,7 @@
-const API_URL = 'https://api.deepseek.com/v1/chat/completions';
-const API_KEY = 'sk-6f35324e75034e978f1516dcf97444a5';
+const { deepseek } = require('../../config/index');
+
+const API_URL = deepseek.apiUrl;
+const API_KEY = deepseek.apiKey;
 
 Page({
   data: {
@@ -44,7 +46,7 @@ Page({
     if (!API_KEY || API_KEY === 'YOUR_DEEPSEEK_API_KEY') {
       wx.showModal({
         title: '未配置 API Key',
-        content: '请先在 pages/index/index.js 中填写 DeepSeek API Key。',
+        content: '请先在 config/local.js 中填写 DeepSeek API Key。',
         showCancel: false
       });
       return;

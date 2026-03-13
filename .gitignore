@@ -23,6 +23,7 @@ project.private.config.json
 # Local env files
 .env
 .env.*
+config/local.js
 
 # Temporary files
 *.tmp
