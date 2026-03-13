@@ -1,0 +1,45 @@
+<view class="page">
+  <view class="bg-orb bg-orb-top"></view>
+  <view class="bg-orb bg-orb-bottom"></view>
+
+
+  <view class="panel panel-input">
+    <view class="panel-head">
+      <view class="panel-title">Input</view>
+      <view class="panel-meta">{{inputText.length || 0}} chars</view>
+    </view>
+
+    <view class="field-shell">
+      <textarea
+        class="input-box"
+        maxlength="-1"
+        placeholder="Type Chinese or English here..."
+        placeholder-class="input-placeholder"
+        value="{{inputText}}"
+        bindinput="onInputChange"
+      />
+    </view>
+  </view>
+
+  <button
+    class="translate-btn"
+    hover-class="translate-btn-hover"
+    hover-stay-time="150"
+    disabled="{{loading}}"
+    bindtap="handleTranslate"
+  >
+    <view class="translate-btn-inner">
+      <view wx:if="{{loading}}" class="translate-spinner"></view>
+      <text class="translate-btn-label">{{loading ? 'Translating...' : 'Translate'}}</text>
+    </view>
+  </button>
+
+  <view class="panel panel-output {{resultText ? 'panel-output-active' : ''}}">
+    <view class="panel-head">
+      <view class="panel-title">Output</view>
+      <text class="copy-text" bindtap="handleCopyResult">Copy</text>
+    </view>
+
+    <view class="output-box {{resultText ? 'output-filled' : 'output-placeholder'}}">{{resultText || 'Your translation will appear here.'}}</view>
+  </view>
+</view>
