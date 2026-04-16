@@ -2,6 +2,47 @@
   <view class="page-halo page-halo-top"></view>
   <view class="page-halo page-halo-bottom"></view>
 
+  <view class="panel panel-industry">
+    <view class="panel-head">
+      <view>
+        <view class="panel-title">选择行业</view>
+      </view>
+    </view>
+
+    <view class="industry-toolbar {{industryExpanded ? 'industry-toolbar-expanded' : ''}}">
+      <view class="industry-collapsed-shell">
+        <view class="industry-list industry-list-collapsed">
+          <block wx:for="{{collapsedIndustryOptions}}" wx:key="*this">
+            <view
+              class="industry-tag {{selectedIndustry === item ? 'industry-tag-active' : ''}}"
+              data-industry="{{item}}"
+              bindtap="onIndustryChange"
+            >
+              {{item}}
+            </view>
+          </block>
+        </view>
+        <view class="industry-fade"></view>
+      </view>
+
+      <view wx:if="{{industryExpanded}}" class="industry-list industry-list-expanded">
+        <block wx:for="{{expandedIndustryOptions}}" wx:key="*this">
+          <view
+            class="industry-tag {{selectedIndustry === item ? 'industry-tag-active' : ''}}"
+            data-industry="{{item}}"
+            bindtap="onIndustryChange"
+          >
+            {{item}}
+          </view>
+        </block>
+      </view>
+
+      <view class="industry-toggle {{industryExpanded ? 'industry-toggle-active' : ''}}" bindtap="toggleIndustryExpand">
+        <text class="industry-toggle-icon {{industryExpanded ? 'industry-toggle-icon-expanded' : ''}}">⌄</text>
+      </view>
+    </view>
+  </view>
+
   <view class="panel panel-input">
     <view class="panel-head">
       <view>

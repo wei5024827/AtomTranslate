@@ -2,6 +2,25 @@ const { deepseek } = require('../../config/index');
 
 const API_URL = deepseek.apiUrl;
 const API_KEY = deepseek.apiKey;
+const INDUSTRY_OPTIONS = [
+  '日常通用',
+  '信息技术',
+  '金融经济',
+  '医疗科学',
+  '工业制造',
+  '法商管理',
+  '建筑民生'
+];
+
+const INDUSTRY_PROMPT_MAP = {
+  日常通用: 'Use general everyday translation conventions. Prefer the most common and natural target-language wording.',
+  信息技术: 'Use information technology terminology, including computer science, software, internet, AI, data, communications, and electronics. Translate technical terms with standard industry usage.',
+  金融经济: 'Use finance and economics terminology, including banking, securities, funds, futures, insurance, and accounting. Translate terms with standard industry usage.',
+  医疗科学: 'Use medical and scientific terminology, including healthcare, pharmaceuticals, biology, and research. Translate terms with standard industry usage.',
+  工业制造: 'Use industrial and manufacturing terminology, including machinery, automotive, energy, chemical engineering, logistics, and supply chain. Translate terms with standard industry usage.',
+  法商管理: 'Use legal, compliance, marketing, operations, and business management terminology. Translate terms with standard industry usage.',
+  建筑民生: 'Use terminology for construction, real estate, education, and public services. Translate terms with standard industry usage.'
+};
 
 Page({
   data: {
@@ -11,7 +30,12 @@ Page({
     loading: false,
     resultPending: false,
     inputCount: 0,
-    outputCount: 0
+    outputCount: 0,
+    industryOptions: INDUSTRY_OPTIONS,
+    collapsedIndustryOptions: INDUSTRY_OPTIONS.slice(0, 4),
+    expandedIndustryOptions: INDUSTRY_OPTIONS.slice(4),
+    industryExpanded: false,
+    selectedIndustry: '日常通用'
   },
 
   onLoad() {
@@ -30,6 +54,28 @@ Page({
     });
 
     this.scheduleRealtimeTranslate();
+  },
+
+  onIndustryChange(e) {
+    const { industry } = e.currentTarget.dataset;
+
+    if (!industry || industry === this.data.selectedIndustry) {
+      return;
+    }
+
+    this.setData({
+      selectedIndustry: industry
+    });
+
+    if (this.data.inputText.trim()) {
+      this.scheduleRealtimeTranslate();
+    }
+  },
+
+  toggleIndustryExpand() {
+    this.setData({
+      industryExpanded: !this.data.industryExpanded
+    });
   },
 
   syncTextState(nextState) {
@@ -192,7 +238,7 @@ Page({
     });
 
     try {
-      const res = await this.requestTranslation(inputText);
+      const res = await this.requestTranslation(inputText, this.data.selectedIndustry);
       const translatedText =
         res.data &&
         res.data.choices &&
@@ -242,7 +288,13 @@ Page({
     }
   },
 
-  requestTranslation(content) {
+  buildSystemPrompt(industry) {
+    const industryPrompt = INDUSTRY_PROMPT_MAP[industry] || INDUSTRY_PROMPT_MAP.日常通用;
+
+    return `You are a professional Chinese-English translation engine. Detect the input language automatically. If the input is Chinese, translate it into English. If the input is English, translate it into Chinese. Return only the direct translation result. Do not explain. Do not add context. Do not polish. Do not expand. Do not infer hidden meaning. Do not add emotion, tone, background, or extra words that are not present in the source text. Keep the translation semantically faithful and as concise as possible. If the input is a short phrase or sentence, translate it literally unless literal translation is clearly incorrect. The selected domain is "${industry}". ${industryPrompt}`;
+  },
+
+  requestTranslation(content, industry) {
     return new Promise((resolve, reject) => {
       wx.request({
         url: API_URL,
@@ -257,8 +309,7 @@ Page({
           messages: [
             {
               role: 'system',
-              content:
-                'You are a professional Chinese-English translation engine. Detect the input language automatically. If the input is Chinese, translate it into English. If the input is English, translate it into Chinese. Return only the direct translation result. Do not explain. Do not add context. Do not polish. Do not expand. Do not infer hidden meaning. Do not add emotion, tone, background, or extra words that are not present in the source text. Keep the translation semantically faithful and as concise as possible. If the input is a short phrase or sentence, translate it literally unless literal translation is clearly incorrect.'
+              content: this.buildSystemPrompt(industry)
             },
             {
               role: 'user',
