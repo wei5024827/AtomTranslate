@@ -7,12 +7,104 @@ Page({
   data: {
     inputText: '',
     resultText: '',
-    loading: false
+    resultError: '',
+    loading: false,
+    resultPending: false,
+    inputCount: 0,
+    outputCount: 0
+  },
+
+  onLoad() {
+    this.translateDebounceTimer = null;
+    this.requestSerial = 0;
+  },
+
+  onUnload() {
+    this.clearTranslateDebounce();
+    this.requestSerial += 1;
   },
 
   onInputChange(e) {
-    this.setData({
+    this.syncTextState({
       inputText: e.detail.value
+    });
+
+    this.scheduleRealtimeTranslate();
+  },
+
+  syncTextState(nextState) {
+    const inputText = typeof nextState.inputText === 'string' ? nextState.inputText : this.data.inputText;
+    const resultText = typeof nextState.resultText === 'string' ? nextState.resultText : this.data.resultText;
+
+    this.setData({
+      ...nextState,
+      inputCount: inputText.length,
+      outputCount: resultText.length
+    });
+  },
+
+  handleClearInput() {
+    this.cancelPendingTranslation();
+
+    if (!this.data.inputText && !this.data.resultText) {
+      return;
+    }
+
+    this.syncTextState({
+      inputText: '',
+      resultText: '',
+      resultError: ''
+    });
+
+    this.setData({
+      loading: false,
+      resultPending: false
+    });
+  },
+
+  handleUseResult() {
+    const { resultText } = this.data;
+
+    if (!resultText) {
+      wx.showToast({
+        title: '当前还没有翻译结果',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.syncTextState({
+      inputText: resultText,
+      resultText: '',
+      resultError: ''
+    });
+
+    this.scheduleRealtimeTranslate();
+  },
+
+  handlePaste() {
+    wx.getClipboardData({
+      success: ({ data }) => {
+        if (!data) {
+          wx.showToast({
+            title: '剪贴板暂无内容',
+            icon: 'none'
+          });
+          return;
+        }
+
+        this.syncTextState({
+          inputText: data
+        });
+
+        this.scheduleRealtimeTranslate();
+      },
+      fail: () => {
+        wx.showToast({
+          title: '无法读取剪贴板',
+          icon: 'none'
+        });
+      }
     });
   },
 
@@ -32,14 +124,53 @@ Page({
     });
   },
 
-  async handleTranslate() {
+  clearTranslateDebounce() {
+    if (this.translateDebounceTimer) {
+      clearTimeout(this.translateDebounceTimer);
+      this.translateDebounceTimer = null;
+    }
+  },
+
+  cancelPendingTranslation() {
+    this.clearTranslateDebounce();
+    this.requestSerial += 1;
+  },
+
+  scheduleRealtimeTranslate() {
     const inputText = this.data.inputText.trim();
 
+    this.clearTranslateDebounce();
+
     if (!inputText) {
-      wx.showToast({
-        title: '请输入要翻译的内容',
-        icon: 'none'
+      this.cancelPendingTranslation();
+      this.syncTextState({
+        resultText: '',
+        resultError: ''
       });
+      this.setData({
+        loading: false,
+        resultPending: false
+      });
+      return;
+    }
+
+    this.setData({
+      resultPending: true,
+      resultError: ''
+    });
+
+    this.translateDebounceTimer = setTimeout(() => {
+      this.translateDebounceTimer = null;
+      this.handleTranslate(inputText);
+    }, 450);
+  },
+
+  async handleTranslate(inputOverride) {
+    const inputText = typeof inputOverride === 'string'
+      ? inputOverride.trim()
+      : this.data.inputText.trim();
+
+    if (!inputText) {
       return;
     }
 
@@ -52,9 +183,12 @@ Page({
       return;
     }
 
+    const requestId = ++this.requestSerial;
+
     this.setData({
       loading: true,
-      resultText: ''
+      resultPending: true,
+      resultError: ''
     });
 
     try {
@@ -72,24 +206,38 @@ Page({
         throw new Error('EMPTY_TRANSLATION');
       }
 
-      this.setData({
+      if (requestId !== this.requestSerial) {
+        return;
+      }
+
+      this.syncTextState({
         resultText: translatedText
       });
     } catch (error) {
+      if (requestId !== this.requestSerial) {
+        return;
+      }
+
       console.error('translate failed:', error);
 
       let message = '翻译失败，请稍后重试';
       if (error && error.errMsg) {
-        message = '网络异常，请检查网络或合法域名配置';
+        message = error.errMsg.indexOf('timeout') > -1
+          ? '请求超时，请检查网络后重试'
+          : '网络异常，请检查网络或合法域名配置';
       }
 
-      wx.showToast({
-        title: message,
-        icon: 'none'
+      this.setData({
+        resultError: message
       });
     } finally {
+      if (requestId !== this.requestSerial) {
+        return;
+      }
+
       this.setData({
-        loading: false
+        loading: false,
+        resultPending: false
       });
     }
   },
@@ -99,7 +247,7 @@ Page({
       wx.request({
         url: API_URL,
         method: 'POST',
-        timeout: 20000,
+        timeout: 60000,
         header: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${API_KEY}`

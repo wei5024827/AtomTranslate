@@ -1,45 +1,40 @@
 <view class="page">
-  <view class="bg-orb bg-orb-top"></view>
-  <view class="bg-orb bg-orb-bottom"></view>
-
+  <view class="page-halo page-halo-top"></view>
+  <view class="page-halo page-halo-bottom"></view>
 
   <view class="panel panel-input">
     <view class="panel-head">
-      <view class="panel-title">Input</view>
-      <view class="panel-meta">{{inputText.length || 0}} chars</view>
+      <view>
+        <view class="panel-title">请输入要翻译的内容</view>
+      </view>
+      <text class="panel-link" bindtap="handleClearInput">Clear</text>
     </view>
 
-    <view class="field-shell">
+    <view class="editor-shell {{inputText ? 'editor-shell-filled' : ''}}">
       <textarea
-        class="input-box"
+        class="editor-textarea"
+        auto-height
         maxlength="-1"
-        placeholder="Type Chinese or English here..."
-        placeholder-class="input-placeholder"
+        placeholder="中英文皆可，AI自动识别语言并翻译为另一种语言"
+        placeholder-class="editor-placeholder"
         value="{{inputText}}"
         bindinput="onInputChange"
-      />
+      ></textarea>
     </view>
   </view>
 
-  <button
-    class="translate-btn"
-    hover-class="translate-btn-hover"
-    hover-stay-time="150"
-    disabled="{{loading}}"
-    bindtap="handleTranslate"
-  >
-    <view class="translate-btn-inner">
-      <view wx:if="{{loading}}" class="translate-spinner"></view>
-      <text class="translate-btn-label">{{loading ? 'Translating...' : 'Translate'}}</text>
-    </view>
-  </button>
-
-  <view class="panel panel-output {{resultText ? 'panel-output-active' : ''}}">
+  <view class="panel panel-output panel-output-active">
     <view class="panel-head">
-      <view class="panel-title">Output</view>
-      <text class="copy-text" bindtap="handleCopyResult">Copy</text>
+      <view>
+        <view class="panel-title">翻译结果</view>
+      </view>
+      <text class="panel-link" bindtap="handleCopyResult">Copy</text>
     </view>
 
-    <view class="output-box {{resultText ? 'output-filled' : 'output-placeholder'}}">{{resultText || 'Your translation will appear here.'}}</view>
+    <view class="result-shell {{(resultText || resultPending || resultError) ? 'result-shell-filled' : ''}}">
+      <view class="result-content {{resultError ? 'result-content-error' : (resultText ? 'result-content-filled' : 'result-content-empty') }}">
+        <text class="result-text">{{resultText || resultError || (loading ? 'Translating...' : '')}}</text>
+      </view>
+    </view>
   </view>
 </view>
